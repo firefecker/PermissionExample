@@ -1,5 +1,6 @@
 package com.example.testexample
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -14,7 +15,8 @@ import android.provider.Settings
  * Author：houzhenghong
  * Create Time：2019-07-23
  */
-object PermissionSettingPage {
+object SettingPage {
+
 
     private val MARK = Build.MANUFACTURER.toLowerCase()
 
@@ -23,33 +25,27 @@ object PermissionSettingPage {
      * @param context 上下文对象
      * @param newTask 是否使用新的任务栈启动
      */
-    internal fun start(context: Context, newTask: Boolean = true) {
-
+    internal fun start(activity: Activity, newTask: Boolean = false, requestCode: Int) {
         var intent: Intent? = null
-        if (MARK.contains("huawei")) {
-            intent = huawei(context)
-        } else if (MARK.contains("xiaomi")) {
-            intent = xiaomi(context)
-        } else if (MARK.contains("oppo")) {
-            intent = oppo(context)
-        } else if (MARK.contains("vivo")) {
-            intent = vivo(context)
-        } else if (MARK.contains("meizu")) {
-            intent = meizu(context)
+        when {
+            MARK.contains("huawei") -> intent = huawei(activity)
+            MARK.contains("xiaomi") -> intent = xiaomi(activity)
+            MARK.contains("oppo") -> intent = oppo(activity)
+            MARK.contains("vivo") -> intent = vivo(activity)
+            MARK.contains("meizu") -> intent = meizu(activity)
         }
-        if (intent == null || !hasIntent(context, intent)) {
-            intent = google(context)
+        if (intent == null || !hasIntent(activity, intent)) {
+            intent = google(activity)
         }
         if (newTask) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        try {
-            context.startActivity(intent)
-        } catch (ignored: Exception) {
-            intent = google(context)
-            context.startActivity(intent)
+        runCatching {
+            activity.startActivityForResult(intent, requestCode)
+        }.onFailure {
+            intent = google(activity)
+            activity.startActivityForResult(intent, requestCode)
         }
-
     }
 
     private fun google(context: Context): Intent {
@@ -121,5 +117,6 @@ object PermissionSettingPage {
     private fun hasIntent(context: Context, intent: Intent): Boolean {
         return context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).size > 0
     }
+
 
 }

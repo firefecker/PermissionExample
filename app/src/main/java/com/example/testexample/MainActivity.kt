@@ -15,11 +15,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
         fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
+//            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                .setAction("Action", null).show()
             PermissionHelper.with(this)
                 .addPermissions(Manifest.permission.READ_PHONE_STATE, Manifest.permission.CAMERA)
-                .deniedShowTips("这是请求权限提示。。。。。。")
+//                .deniedShowTips("这是请求权限提示。。。。。。")
                 .request { isGranted, permission, grantResults ->
                     Log.e("TAGTAG", "$isGranted")
                 }

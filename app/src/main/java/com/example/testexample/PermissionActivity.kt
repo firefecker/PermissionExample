@@ -65,14 +65,12 @@ class PermissionActivity : AppCompatActivity() {
             return
         }
         when {
-            hasShowTips -> {
-                if (tips.isNullOrEmpty()) {
-                    requestPermission()
-                    return
-                }
-                showTips()
+            tips.isNullOrEmpty() -> if (!hasPermissions and !hasShowTips) {
+                SettingPage.start(this, requestCode = PERMISSION_SETTING_REQUEST_CODE)
+            } else {
+                requestPermission()
             }
-            else -> requestPermission()
+            else -> showTips()
         }
     }
 
@@ -93,6 +91,10 @@ class PermissionActivity : AppCompatActivity() {
                 positiveText
             ) { dialog, _ ->
                 dialog.dismiss()
+                if (!hasPermissions and !hasShowTips) {
+                    SettingPage.start(this, requestCode = PERMISSION_SETTING_REQUEST_CODE)
+                    return@setPositiveButton
+                }
                 requestPermission()
             }
             .show()
@@ -124,28 +126,42 @@ class PermissionActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             PERMISSION_REQUEST_CODE -> {
-                // 如果请求被取消，则结果数组为空
                 if (grantResults.isNotEmpty()) {
                     when {
-                        // 许可被授予，耶！执行与联系人相关的任务。
                         grantResults[0] == PackageManager.PERMISSION_GRANTED -> finishAndResult(
                             !grantResults.contains(-1),
                             permissions,
                             grantResults
                         )
-                        // 许可被拒绝，禁用使用此权限的功能。提示用户开通权限的原因。用户看到解释后，再次尝试请求权限。
-                        grantResults[0] == PackageManager.PERMISSION_DENIED -> finishAndResult(
-                            false,
-                            permissions,
-                            grantResults
-                        )
-                        else -> PermissionSettingPage.start(this) //进入权限的设置界面
+                        grantResults[0] == PackageManager.PERMISSION_DENIED -> {
+                            if (grantResults.contains(-1)) {
+                                SettingPage.start(this, requestCode = PERMISSION_SETTING_REQUEST_CODE)
+                                return
+                            }
+                            finishAndResult(
+                                false,
+                                permissions,
+                                grantResults
+                            )
+                        }
+                        else -> SettingPage.start(this, requestCode = PERMISSION_SETTING_REQUEST_CODE)
                     }
                 }
             }
         }
     }
 
+    /**接收设置界面返回请求code
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PERMISSION_SETTING_REQUEST_CODE) {
+            requestPermission()
+        }
+    }
 
     /**
      * 关闭当前页面并返回状态
@@ -160,10 +176,13 @@ class PermissionActivity : AppCompatActivity() {
 
     companion object {
         const val PERMISSION_REQUEST_CODE = 43222
+        const val PERMISSION_SETTING_REQUEST_CODE = 43221
+
         const val PERMISSION_LIST = "permission_list"
         const val PERMISSION_TIPS = "permission_tips"
         const val PERMISSION_POSITIVE = "permission_positive"
         const val PERMISSION_NEGATIVE = "permission_negative"
+
         var onResult: ((isGranted: Boolean, permissions: Array<out String>, grantResults: IntArray) -> Unit)? = null
 
         fun starRequestPermissions(
